@@ -1,7 +1,5 @@
-songutils
-=========
-
 Song Utilities
+==============
 
 move.py
 -------
