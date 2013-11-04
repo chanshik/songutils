@@ -14,7 +14,7 @@ def is_music_file(filename):
     """
     Find a song file using extension.
     """
-    valid_extensions = [u"flac", u"mp3", u"m4a", u"ape"]
+    valid_extensions = [u"flac", u"mp3", u"m4a"]
 
     for ext in valid_extensions:
         if filename.lower().strip().endswith(ext):
