@@ -2,8 +2,13 @@
 
 import os
 import sys
-import mutagen
 
+reload(sys)
+sys.setdefaultencoding('utf8')
+
+import mutagen
+from colorama import init, Fore
+init()
 
 def is_music_file(filename):
     """
@@ -37,7 +42,10 @@ def make_new_path(save_path, artist, album, album_artist, title, track_number, e
 
     Return: [save_path]/[artist]/[album]/[title] path.
     """
-    if album_artist != '':
+    if not os.path.exists(save_path):
+        os.mkdir(save_path)
+
+    if album_artist:
         artist_path = save_path + "/" + album_artist
         artist = album_artist
     else:
@@ -61,26 +69,98 @@ def make_new_path(save_path, artist, album, album_artist, title, track_number, e
 
 def is_valid_meta(meta):
     """
-    Return: True if meta has 'album', 'artist', 'title' keys.
+    Check minimum required meta information exists.
+
+    ID3v1 - title, artist, album (required)
+            albumartist, tracknumber (optional)
+    ID3v2 - TIT2, TPE1, TALB (required)
+            TPE2, TRCK (optional)
+    m4a   - \xa9nam, \xa9ART, \xa9alb (required)
+            aART, trkn (optional)
+
+    Return: True if meta has minium required attributes.
     """
+    ID3v1_tags = ['title', 'artist', 'album']
+    ID3v2_tags = ['TIT2', 'TPE1', 'TALB']
+    m4a_tags = ['\xa9nam', '\xa9ART', '\xa9alb']
+
     if meta is None:
         return False
 
-    if not 'album' in meta or not 'artist' in meta or not 'title' in meta:
+    is_ID3v1 = 'title' in meta
+    is_ID3v2 = 'TALB' in meta
+    try:
+        is_m4a = meta.has_key('\xa9nam')
+    except UnicodeError:
+        is_m4a = False
+
+    if not is_ID3v1 and not is_ID3v2 and not is_m4a:
         return False
 
-    if not 'albumartist' in meta or not 'tracknumber' in meta:
-        return False
+    if is_ID3v1:
+        for tag in ID3v1_tags:
+            if not tag in meta:
+                return False
+    elif is_ID3v2:
+        for tag in ID3v2_tags:
+            if not tag in meta:
+                return False
+    elif is_m4a:
+        for tag in m4a_tags:
+            if not tag in meta:
+                return False
 
     return True
+
+
+def extract_info_from_meta(meta):
+    if meta is None:
+        return False
+
+    is_ID3v1 = 'title' in meta
+    is_ID3v2 = 'TALB' in meta
+    try:
+        is_m4a = meta.has_key('\xa9nam')
+    except UnicodeError:
+        is_m4a = False
+
+    if not is_ID3v1 and not is_ID3v2 and not is_m4a:
+        return None
+
+    if is_ID3v1:
+        song_info = {
+            'title': meta['title'][0],
+            'artist': meta['artist'][0],
+            'album': meta['album'][0]
+        }
+        song_info['albumartist'] = meta['albumartist'][0] if 'albumartist' in meta else None
+        song_info['tracknumber'] = int(meta['tracknumber'][0]) if 'tracknumber' in meta else None
+
+    elif is_ID3v2:
+        song_info = {
+            'title': meta['TIT2'][0],
+            'artist': meta['TPE1'][0],
+            'album': meta['TALB'][0]
+        }
+        song_info['albumartist'] = meta['TPE2'][0] if 'TPE2' in meta else None
+        song_info['tracknumber'] = int(meta['TRCK'][0]) if 'TRCK' in meta else None
+
+    elif is_m4a:
+        song_info = {
+            'title': meta['\xa9nam'][0],
+            'artist': meta['\xa9ART'][0],
+            'album': meta['\xa9alb'][0]
+        }
+        song_info['albumartist'] = meta['aART'][0] if 'aART' in meta else None
+        song_info['tracknumber'] = int(meta['trkn'][0][0]) if 'trkn' in meta else None
+
+    return song_info
 
 
 def move(home_path, save_path):
     """
     Move song files in home directory to [save_path]/[artist]/[album]/[title]
     """
-    reload(sys)
-    sys.setdefaultencoding('utf8')
 
     files = os.listdir(u"%s" % home_path)
 
@@ -91,28 +171,33 @@ def move(home_path, save_path):
             continue
 
         if not is_music_file(filename):
-            print "Not a music file: " + filename
+            print Fore.RED + "Not a music file: " + filename + Fore.RESET
             continue
 
         meta, name, ext = get_basic_info(home_path, filename)
 
         if not is_valid_meta(meta):
-            print "No meta information: " + filename
+            print Fore.RED + "No meta information: " + filename + Fore.RESET
             continue
 
-        if meta['album'][0] == '' or meta['artist'][0] == '' or meta['title'][0] == '':
+        song_info = extract_info_from_meta(meta)
+        if not song_info:
+            print Fore.RED + "No meta information: " + filename + Fore.RESET
             continue
 
-        album = meta['album'][0]
-        album_artist = meta['albumartist'][0] if 'albumartist' in meta else ''
-        artist = meta['artist'][0]
-        title = meta['title'][0]
-        track_number = int(meta['tracknumber'][0]) if 'tracknumber' in meta else None
+        if song_info['album'] == '' or song_info['artist'] == '' or song_info['title'] == '':
+            continue
+
+        album = song_info['album']
+        album_artist = song_info['albumartist']
+        artist = song_info['artist']
+        title = song_info['title']
+        track_number = song_info['tracknumber']
 
         old_path = home_path + "/" + filename
         new_path = make_new_path(save_path, artist, album, album_artist, title, track_number, ext)
 
-        print "%s ---> %s" % (old_path, new_path)
+        print old_path + "\n --> " + Fore.BLUE + new_path + Fore.RESET
         os.rename(old_path, new_path)
 
 
