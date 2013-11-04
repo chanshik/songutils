@@ -36,7 +36,7 @@ def get_basic_info(home_path, filename):
     return meta, name, ext
 
 
-def make_new_path(save_path, artist, album, album_artist, title, track_number, ext):
+def make_new_path(save_path, song_info, ext):
     """
     Create artist/album folder.
 
@@ -45,26 +45,38 @@ def make_new_path(save_path, artist, album, album_artist, title, track_number, e
     if not os.path.exists(save_path):
         os.mkdir(save_path)
 
+    album = song_info['album']
+    disc_number = song_info['discnumber']
+    track_number = song_info['tracknumber']
+    title = song_info['title']
+    album_artist = song_info['albumartist']
+
     if album_artist:
         artist_path = save_path + "/" + album_artist
         artist = album_artist
     else:
-        artist_path = save_path + "/" + artist
+        artist_path = save_path + "/" + song_info['artist']
 
     if not os.path.exists(artist_path):
         print "Creating " + artist_path
         os.mkdir(artist_path)
 
-    album_path = save_path + "/" + artist + "/" + album
+    album_path = save_path + "/" + artist + "/" + song_info['album']
 
     if not os.path.exists(album_path):
         print "Creating " + album_path
         os.mkdir(album_path)
 
     if track_number:
-        return u"%s/%s/%s/%02d. %s.%s" % (save_path, artist, album, track_number, title, ext)
+        if disc_number:
+            full_path = u"%s/%s/%s/%1d-%02d. %s.%s" % (
+                save_path, artist, album, disc_number, track_number, title, ext)
+        else:
+            full_path = u"%s/%s/%s/%02d. %s.%s" % (save_path, artist, album, track_number, title, ext)
     else:
-        return u"%s/%s/%s/%s.%s" % (save_path, artist, album, title, ext)
+        full_path = u"%s/%s/%s/%s.%s" % (save_path, artist, album, title, ext)
+
+    return full_path
 
 
 def is_valid_meta(meta):
@@ -72,11 +84,11 @@ def is_valid_meta(meta):
     Check minimum required meta information exists.
 
     ID3v1 - title, artist, album (required)
-            albumartist, tracknumber (optional)
+            albumartist, discnumber tracknumber (optional)
     ID3v2 - TIT2, TPE1, TALB (required)
-            TPE2, TRCK (optional)
+            TPE2, TPOS, TRCK (optional)
     m4a   - \xa9nam, \xa9ART, \xa9alb (required)
-            aART, trkn (optional)
+            aART, disk, trkn (optional)
 
     Return: True if meta has minium required attributes.
     """
@@ -134,6 +146,7 @@ def extract_info_from_meta(meta):
             'album': meta['album'][0]
         }
         song_info['albumartist'] = meta['albumartist'][0] if 'albumartist' in meta else None
+        song_info['discnumber'] = int(meta['discnumber'][0]) if 'discnumber' in meta else None
         song_info['tracknumber'] = int(meta['tracknumber'][0]) if 'tracknumber' in meta else None
 
     elif is_ID3v2:
@@ -143,6 +156,7 @@ def extract_info_from_meta(meta):
             'album': meta['TALB'][0]
         }
         song_info['albumartist'] = meta['TPE2'][0] if 'TPE2' in meta else None
+        song_info['discnumber'] = int(meta['TPOS'][0]) if 'TPOS' in meta else None
         song_info['tracknumber'] = int(meta['TRCK'][0]) if 'TRCK' in meta else None
 
     elif is_m4a:
@@ -152,6 +166,7 @@ def extract_info_from_meta(meta):
             'album': meta['\xa9alb'][0]
         }
         song_info['albumartist'] = meta['aART'][0] if 'aART' in meta else None
+        song_info['discnumber'] = int(meta['disk'][0]) if 'disc' in meta else None
         song_info['tracknumber'] = int(meta['trkn'][0][0]) if 'trkn' in meta else None
 
     return song_info
@@ -188,14 +203,8 @@ def move(home_path, save_path):
         if song_info['album'] == '' or song_info['artist'] == '' or song_info['title'] == '':
             continue
 
-        album = song_info['album']
-        album_artist = song_info['albumartist']
-        artist = song_info['artist']
-        title = song_info['title']
-        track_number = song_info['tracknumber']
-
         old_path = home_path + "/" + filename
-        new_path = make_new_path(save_path, artist, album, album_artist, title, track_number, ext)
+        new_path = make_new_path(save_path, song_info, ext)
 
         print old_path + "\n --> " + Fore.BLUE + new_path + Fore.RESET
         os.rename(old_path, new_path)
