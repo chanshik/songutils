@@ -102,7 +102,7 @@ def is_valid_meta(meta):
     is_ID3v1 = 'title' in meta
     is_ID3v2 = 'TALB' in meta
     try:
-        is_m4a = meta.has_key('\xa9nam')
+        is_m4a = '\xa9nam' in meta
     except UnicodeError:
         is_m4a = False
 
@@ -139,35 +139,25 @@ def extract_info_from_meta(meta):
     if not is_ID3v1 and not is_ID3v2 and not is_m4a:
         return None
 
+    song_info = {}
+
     if is_ID3v1:
-        song_info = {
-            'title': meta['title'][0],
-            'artist': meta['artist'][0],
-            'album': meta['album'][0]
-        }
-        song_info['albumartist'] = meta['albumartist'][0] if 'albumartist' in meta else None
-        song_info['discnumber'] = int(meta['discnumber'][0]) if 'discnumber' in meta else None
-        song_info['tracknumber'] = int(meta['tracknumber'][0]) if 'tracknumber' in meta else None
+        song_info = {'title': meta['title'][0], 'artist': meta['artist'][0], 'album': meta['album'][0],
+                     'albumartist': meta['albumartist'][0] if 'albumartist' in meta else None,
+                     'discnumber': int(meta['discnumber'][0]) if 'discnumber' in meta else None,
+                     'tracknumber': int(meta['tracknumber'][0]) if 'tracknumber' in meta else None}
 
     elif is_ID3v2:
-        song_info = {
-            'title': meta['TIT2'][0],
-            'artist': meta['TPE1'][0],
-            'album': meta['TALB'][0]
-        }
-        song_info['albumartist'] = meta['TPE2'][0] if 'TPE2' in meta else None
-        song_info['discnumber'] = int(meta['TPOS'][0]) if 'TPOS' in meta else None
-        song_info['tracknumber'] = int(meta['TRCK'][0]) if 'TRCK' in meta else None
+        song_info = {'title': meta['TIT2'][0], 'artist': meta['TPE1'][0], 'album': meta['TALB'][0],
+                     'albumartist': meta['TPE2'][0] if 'TPE2' in meta else None,
+                     'discnumber': int(meta['TPOS'][0]) if 'TPOS' in meta else None,
+                     'tracknumber': int(meta['TRCK'][0]) if 'TRCK' in meta else None}
 
     elif is_m4a:
-        song_info = {
-            'title': meta['\xa9nam'][0],
-            'artist': meta['\xa9ART'][0],
-            'album': meta['\xa9alb'][0]
-        }
-        song_info['albumartist'] = meta['aART'][0] if 'aART' in meta else None
-        song_info['discnumber'] = int(meta['disk'][0]) if 'disc' in meta else None
-        song_info['tracknumber'] = int(meta['trkn'][0][0]) if 'trkn' in meta else None
+        song_info = {'title': meta['\xa9nam'][0], 'artist': meta['\xa9ART'][0], 'album': meta['\xa9alb'][0],
+                     'albumartist': meta['aART'][0] if 'aART' in meta else None,
+                     'discnumber': int(meta['disk'][0]) if 'disc' in meta else None,
+                     'tracknumber': int(meta['trkn'][0][0]) if 'trkn' in meta else None}
 
     return song_info
 
