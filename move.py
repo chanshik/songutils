@@ -50,6 +50,7 @@ def make_new_path(save_path, song_info, ext):
     track_number = song_info['tracknumber']
     title = song_info['title']
     album_artist = song_info['albumartist']
+    artist = song_info['artist']
 
     if album_artist:
         artist_path = save_path + "/" + album_artist
@@ -61,7 +62,7 @@ def make_new_path(save_path, song_info, ext):
         print "Creating " + artist_path
         os.mkdir(artist_path)
 
-    album_path = save_path + "/" + artist + "/" + song_info['album']
+    album_path = artist_path + "/" + song_info['album']
 
     if not os.path.exists(album_path):
         print "Creating " + album_path
@@ -159,6 +160,10 @@ def extract_info_from_meta(meta):
                      'discnumber': int(meta['disk'][0]) if 'disc' in meta else None,
                      'tracknumber': int(meta['trkn'][0][0]) if 'trkn' in meta else None}
 
+    # Replace '/' character to '-' for valid file and directory name.
+    if "/" in song_info['title']:
+        song_info['title'] = song_info['title'].replace('/', '-')
+
     return song_info
 
 
@@ -196,8 +201,13 @@ def move(home_path, save_path):
         old_path = home_path + "/" + filename
         new_path = make_new_path(save_path, song_info, ext)
 
-        print old_path + "\n --> " + Fore.BLUE + new_path + Fore.RESET
-        os.rename(old_path, new_path)
+        # print old_path + "\n --> " + Fore.BLUE + new_path + Fore.RESET
+        try:
+            os.rename(old_path, new_path)
+        except OSError, e:
+            print Fore.RED + "Error: " + str(e)
+            print "  From: " + old_path
+            print "  To: " + new_path
 
 
 if __name__ == "__main__":
