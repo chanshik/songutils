@@ -164,6 +164,12 @@ def extract_info_from_meta(meta):
     if "/" in song_info['title']:
         song_info['title'] = song_info['title'].replace('/', '-')
 
+    if "/" in song_info['album']:
+        song_info['album'] = song_info['album'].replace('/', '-')
+
+    if '/' in song_info['artist']:
+        song_info['artist'] = song_info['artist'].replace('/', '-')
+
     return song_info
 
 
