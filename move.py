@@ -126,6 +126,13 @@ def is_valid_meta(meta):
     return True
 
 
+def remove_total_track(tracknumber):
+    if "/" in tracknumber:  # Maybe "3/12"
+        return tracknumber[:tracknumber.index("/")]
+    else:
+        return tracknumber
+
+
 def extract_info_from_meta(meta):
     if meta is None:
         return False
@@ -143,22 +150,31 @@ def extract_info_from_meta(meta):
     song_info = {}
 
     if is_ID3v1:
+        tracknumber = remove_total_track(meta['tracknumber'][0]) if 'tracknumber' in meta else None
+        disknumber = remove_total_track(meta['discnumber'][0]) if 'discnumber' in meta else None
+
         song_info = {'title': meta['title'][0], 'artist': meta['artist'][0], 'album': meta['album'][0],
                      'albumartist': meta['albumartist'][0] if 'albumartist' in meta else None,
-                     'discnumber': int(meta['discnumber'][0]) if 'discnumber' in meta else None,
-                     'tracknumber': int(meta['tracknumber'][0]) if 'tracknumber' in meta else None}
+                     'discnumber': int(disknumber) if 'discnumber' in meta else None,
+                     'tracknumber': int(tracknumber) if 'tracknumber' in meta else None}
 
     elif is_ID3v2:
+        tracknumber = remove_total_track(meta['TRCK'][0]) if 'TRCK' in meta else None
+        disknumber = remove_total_track(meta['TPOS'][0]) if 'TPOS' in meta else None
+
         song_info = {'title': meta['TIT2'][0], 'artist': meta['TPE1'][0], 'album': meta['TALB'][0],
                      'albumartist': meta['TPE2'][0] if 'TPE2' in meta else None,
-                     'discnumber': int(meta['TPOS'][0]) if 'TPOS' in meta else None,
-                     'tracknumber': int(meta['TRCK'][0]) if 'TRCK' in meta else None}
+                     'discnumber': int(disknumber) if 'TPOS' in meta else None,
+                     'tracknumber': int(tracknumber) if 'TRCK' in meta else None}
 
     elif is_m4a:
+        tracknumber = remove_total_track(meta['trkn'][0][0]) if 'trkn' in meta else None
+        disknumber = remove_total_track(meta['disc'][0]) if 'disc' in meta else None
+
         song_info = {'title': meta['\xa9nam'][0], 'artist': meta['\xa9ART'][0], 'album': meta['\xa9alb'][0],
                      'albumartist': meta['aART'][0] if 'aART' in meta else None,
-                     'discnumber': int(meta['disk'][0]) if 'disc' in meta else None,
-                     'tracknumber': int(meta['trkn'][0][0]) if 'trkn' in meta else None}
+                     'discnumber': int(disknumber) if 'disc' in meta else None,
+                     'tracknumber': int(tracknumber) if 'trkn' in meta else None}
 
     # Replace '/' character to '-' for valid file and directory name.
     if "/" in song_info['title']:
